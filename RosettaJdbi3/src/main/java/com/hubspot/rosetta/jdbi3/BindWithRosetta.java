@@ -8,7 +8,9 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jdbi.v3.sqlobject.customizer.SqlStatementCustomizerFactory;
@@ -51,7 +53,13 @@ public @interface BindWithRosetta {
         Map<String, Object> namedValues = new HashMap<>();
         RosettaBinder.INSTANCE.bind(prefix, node, namedValues::put);
 
-        stmt.bindMap(namedValues);
+        namedValues.entrySet().forEach((entry) -> {
+          if (entry.getValue() instanceof List) {
+            stmt.bindList(entry.getKey(), (List) entry.getValue());
+          } else {
+            stmt.bind(entry.getKey(), entry.getValue());
+          }
+        });
       };
     }
   }

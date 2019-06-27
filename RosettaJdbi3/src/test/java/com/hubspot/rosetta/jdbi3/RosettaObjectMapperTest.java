@@ -3,8 +3,11 @@ package com.hubspot.rosetta.jdbi3;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
@@ -117,6 +120,32 @@ public class RosettaObjectMapperTest extends AbstractJdbiTest {
       registerDeserializer(handle);
 
       TestDao dao = handle.attach(TestDao.class);
+      dao.insert(inserted);
+
+      Query query = handle.createQuery("SELECT * FROM test_table");
+      registerDeserializer(query);
+
+      List<TestObject> results = query.mapTo(TestObject.class).list();
+      assertThat(results).hasSize(1);
+
+      return results.get(0);
+    });
+
+    assertThat(actual).isEqualTo(expected);
+  }
+
+  @Test
+  public void mappingCollectionQuery() {
+    registerSerializer(getJdbi());
+
+    TestObject inserted = new TestObject(1, "test");
+    TestObject expected = new TestObject(inserted.getId() + STATEMENT_ADD, inserted.getName() + STATEMENT_ADD);
+
+    TestObject actual = getDao().withHandle(handle -> {
+      registerDeserializer(handle);
+
+      TestDao dao = handle.attach(TestDao.class);
+      dao.getAllByQueryObject(new TestQuery(new HashSet<>(Arrays.asList("foo", "bar", "test"))));
       dao.insert(inserted);
 
       Query query = handle.createQuery("SELECT * FROM test_table");
